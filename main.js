@@ -1,1 +1,2 @@
-// Add JS here
+import './components.js';
+import './auth.js';

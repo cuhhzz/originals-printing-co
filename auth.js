@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, signInWithEmailAndPassword, sendPasswordResetEmail, RecaptchaVerifier, signInWithPhoneNumber, EmailAuthProvider, linkWithCredential } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { auth } from './firebase-config.js';
 
 class LoginPopup extends HTMLElement {
@@ -28,15 +28,13 @@ class LoginPopup extends HTMLElement {
                 h2 { text-align: center; font-size: 2rem; margin-bottom: 1.5rem; color: var(--accent-color); }
                 .form-group { margin-bottom: 1.25rem; }
                 .input-wrapper { position: relative; }
-                input[type="email"], input[type="password"], input[type="text"] {
+                input[type="email"], input[type="password"], input[type="text"], input[type="tel"] {
                     width: 100%; padding: 1rem; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; font-size: 1rem; transition: box-shadow 0.3s, border-color 0.3s;
                 }
                 .password-toggle-btn {
                     position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; padding: 0; margin: 0; cursor: pointer; color: #aaa; display: inline-flex; align-items: center; justify-content: center;
                 }
                 .password-toggle-btn i { font-size: 1.5rem; }
-
-                /* Password Matching Glow */
                 input#signup-password-confirm.match {
                     border-color: var(--success-color);
                     box-shadow: 0 0 8px var(--success-color);
@@ -45,14 +43,11 @@ class LoginPopup extends HTMLElement {
                     border-color: var(--error-color);
                     box-shadow: 0 0 8px var(--error-color);
                 }
-
-                /* Password Strength & Validation */
                 .password-validation-container { font-size: 0.8rem; margin-top: 0.75rem; }
                 #password-strength-text { margin-bottom: 0.5rem; text-align: right; font-weight: bold; }
                 .validation-list { list-style: none; padding: 0; margin: 0; color: #aaa; }
                 .validation-list li { transition: color 0.3s; }
                 .validation-list li.valid { color: var(--success-color); text-decoration: line-through; }
-
                 .options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-size: 0.9rem; }
                 .remember-me { display: flex; align-items: center; }
                 #forgot-password, .terms-group a { color: var(--accent-color); text-decoration: none; }
@@ -66,8 +61,6 @@ class LoginPopup extends HTMLElement {
                 .signup-link { text-align: center; margin-top: 1.5rem; }
                 .signup-link a { color: var(--accent-color); text-decoration: none; font-weight: bold; }
                 .terms-group { font-size: 0.8rem; text-align: center; }
-
-                /* Sub-Popups (Terms, Privacy, Success, Error) */
                 .sub-popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 3000; }
                 .sub-popup-content { background: #2a2a2a; padding: 2rem; border-radius: 10px; max-width: 600px; color: #eee; position: relative; text-align: left; }
                 .sub-popup-content h3 { margin-top: 0; font-size: 1.5rem; color: var(--accent-color); text-align: center;}
@@ -84,7 +77,7 @@ class LoginPopup extends HTMLElement {
 
                     <!-- Login View -->
                     <div id="login-view">
-                        <h2>Login</h2>
+                        <h2>Log!in</h2>
                         <form id="login-form">
                             <div class="form-group">
                                 <div class="input-wrapper">
@@ -128,6 +121,9 @@ class LoginPopup extends HTMLElement {
                                 <input type="email" id="signup-email" placeholder="Email" required>
                             </div>
                             <div class="form-group">
+                                <input type="tel" id="signup-phone" placeholder="Phone Number" required>
+                            </div>
+                            <div class="form-group">
                                 <div class="input-wrapper">
                                     <input type="password" id="signup-password" placeholder="Create Password" required>
                                     <button type="button" class="password-toggle-btn" data-for="signup-password"><i class='bx bx-hide'></i></button>
@@ -160,7 +156,21 @@ class LoginPopup extends HTMLElement {
                         <div class="signup-link">
                             Already have an account? <a href="#" id="show-login">Login</a>
                         </div>
+                        <div id="recaptcha-container-signup" style="position: absolute; bottom: 0; right: 0;"></div>
                     </div>
+
+                    <!-- OTP View -->
+                    <div id="otp-view" style="display:none;">
+                        <h2>Verify Phone</h2>
+                        <p style="text-align: center; margin-bottom: 1.5rem;">An OTP has been sent to your phone number. Please enter it below to verify your account.</p>
+                        <form id="otp-form">
+                            <div class="form-group">
+                                <input type="text" id="otp-input" placeholder="6-Digit Code" required>
+                            </div>
+                            <button type="submit" class="login-btn" id="verify-otp-btn">Verify & Create Account</button>
+                        </form>
+                    </div>
+
                 </div>
             </div>
 
@@ -242,11 +252,13 @@ class LoginPopup extends HTMLElement {
         this.shadowRoot.querySelector('#google-login').addEventListener('click', this._handleGoogleLogin.bind(this));
         this.shadowRoot.querySelector('#facebook-login').addEventListener('click', this._handleFacebookLogin.bind(this));
         this.shadowRoot.querySelector('#forgot-password').addEventListener('click', this._handleForgotPassword.bind(this));
+        this.shadowRoot.querySelector('#verify-otp-btn').addEventListener('click', this._handleOtpVerificationAndSignUp.bind(this));
     }
 
     _switchView(viewId) {
         this.shadowRoot.querySelector('#login-view').style.display = viewId === 'login-view' ? 'block' : 'none';
         this.shadowRoot.querySelector('#signup-view').style.display = viewId === 'signup-view' ? 'block' : 'none';
+        this.shadowRoot.querySelector('#otp-view').style.display = viewId === 'otp-view' ? 'block' : 'none';
     }
 
     _validatePassword() {
@@ -321,6 +333,7 @@ class LoginPopup extends HTMLElement {
         const email = this.shadowRoot.querySelector('#signup-email').value;
         const password = this.shadowRoot.querySelector('#signup-password').value;
         const passwordConfirm = this.shadowRoot.querySelector('#signup-password-confirm').value;
+        const phone = this.shadowRoot.querySelector('#signup-phone').value;
         const termsAgree = this.shadowRoot.querySelector('#terms-agree').checked;
 
         if (!termsAgree) {
@@ -339,19 +352,40 @@ class LoginPopup extends HTMLElement {
             return;
         }
 
-        createUserWithEmailAndPassword(auth, email, password)
-            .then(userCredential => {
-                sendEmailVerification(userCredential.user)
-                    .then(() => {
-                        this._showSuccessPopup(
-                            'Confirm Your Account',
-                            'A verification link has been sent to your email address. Please check your inbox to complete your sign-up.'
-                        );
-                    });
-            })
-            .catch(err => {
-                this._showErrorPopup('Sign-Up Failed', this._getFriendlyErrorMessage(err));
+        this.email = email;
+        this.password = password;
+
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-signup', {
+            'size': 'invisible'
+        });
+
+        signInWithPhoneNumber(auth, phone, window.recaptchaVerifier)
+            .then((confirmationResult) => {
+                window.confirmationResult = confirmationResult;
+                this._switchView('otp-view');
+            }).catch((error) => {
+                this._showErrorPopup('OTP Send Failed', this._getFriendlyErrorMessage(error));
+                window.recaptchaVerifier.render().then(widgetId => {
+                    grecaptcha.reset(widgetId);
+                });
             });
+    }
+
+    _handleOtpVerificationAndSignUp(e) {
+        e.preventDefault();
+        const otp = this.shadowRoot.querySelector('#otp-input').value;
+        window.confirmationResult.confirm(otp).then((result) => {
+            const user = result.user;
+            const credential = EmailAuthProvider.credential(this.email, this.password);
+            linkWithCredential(user, credential).then((usercred) => {
+                this._showSuccessPopup('Sign-Up Successful', 'Your account has been successfully created and verified!');
+            }).catch((error) => {
+                this._showErrorPopup('Sign-Up Failed', this._getFriendlyErrorMessage(error));
+                 user.delete(); // Clean up the user if linking fails
+            });
+        }).catch((error) => {
+            this._showErrorPopup('OTP Verification Failed', 'The code you entered was incorrect. Please try again.');
+        });
     }
 
     _handleEmailLogin(e) {
@@ -360,15 +394,10 @@ class LoginPopup extends HTMLElement {
         const password = this.shadowRoot.querySelector('#password').value;
         signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
-                if (userCredential.user.emailVerified) {
-                    this.closePopup();
+                if (userCredential.user.email === 'kylebriannt@gmail.com') {
+                    window.location.href = 'admin.html';
                 } else {
-                    sendEmailVerification(userCredential.user).then(() => {
-                         this._showSuccessPopup(
-                            'Email Not Verified',
-                            'Please verify your email address before logging in. Another verification email has been sent.'
-                        );
-                    });
+                    this.closePopup();
                 }
             })
             .catch(err => {
@@ -379,14 +408,28 @@ class LoginPopup extends HTMLElement {
     _handleGoogleLogin() {
         const provider = new GoogleAuthProvider();
         signInWithPopup(auth, provider)
-            .then(() => this.closePopup())
+            .then((result) => {
+                const user = result.user;
+                if (user.email === 'kylebriannt@gmail.com') {
+                    window.location.href = 'admin.html';
+                } else {
+                    this.closePopup();
+                }
+            })
             .catch(err => this._showErrorPopup('Google Sign-In Failed', this._getFriendlyErrorMessage(err)));
     }
 
     _handleFacebookLogin() {
         const provider = new FacebookAuthProvider();
         signInWithPopup(auth, provider)
-            .then(() => this.closePopup())
+            .then((result) => {
+                const user = result.user;
+                if (user && user.email === 'kylebriannt@gmail.com') {
+                    window.location.href = 'admin.html';
+                } else {
+                    this.closePopup();
+                }
+            })
             .catch(err => this._showErrorPopup('Facebook Sign-In Failed', this._getFriendlyErrorMessage(err)));
     }
     
@@ -400,7 +443,10 @@ class LoginPopup extends HTMLElement {
 
         sendPasswordResetEmail(auth, email)
             .then(() => {
-                this._showSuccessPopup('Password Reset', 'A password reset link has been sent to your email address.');
+                this._showSuccessPopup(
+                    'Check Your Email',
+                    'A secure, one-time password reset link has been sent. Please click the link in the email to set a new password.'
+                );
             })
             .catch(err => {
                 this._showErrorPopup('Password Reset Failed', this._getFriendlyErrorMessage(err));
@@ -419,10 +465,16 @@ class LoginPopup extends HTMLElement {
                 return 'The password you entered is incorrect.';
             case 'auth/email-already-in-use':
                 return 'An account already exists with this email address.';
+            case 'auth/credential-already-in-use':
+                return 'This email is already associated with another account.';
             case 'auth/weak-password':
                 return 'The password is too weak. Please choose a stronger password.';
             case 'auth/popup-closed-by-user':
                 return 'The sign-in popup was closed before completing the operation.';
+            case 'auth/invalid-phone-number':
+                 return 'The phone number you entered is not valid.';
+            case 'auth/too-many-requests':
+                return 'You have sent too many requests. Please try again later.'
             default:
                 return err.message;
         }

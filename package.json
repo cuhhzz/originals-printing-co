@@ -1,0 +1,11 @@
+{
+  "name": "originals-printing-co",
+  "version": "1.0.0",
+  "description": "A modern, responsive landing page for a fictional printing company called \"ORIGINALS Printing Co.\".",
+  "main": "main.js",
+  "scripts": {
+    "start": "npm install && python3 -m http.server 8000"
+  },
+  "author": "",
+  "license": "ISC"
+}

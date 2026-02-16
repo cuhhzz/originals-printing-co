@@ -2,7 +2,7 @@
 
 ## Overview
 
-A modern, responsive landing page for a fictional printing company called "ORIGINALS Printing Co.". The application is built using modern web standards (HTML, CSS, and JavaScript) with no external frameworks. It features a visually appealing design, smooth animations, and a clear call to action. The project is set up to be easily extended with additional features, such as user authentication and a product catalog.
+A modern, responsive landing page for a fictional printing company called "ORIGINALS Printing Co.". The application is built using modern web standards (HTML, CSS, and JavaScript) with no external frameworks. It features a visually appealing design, smooth animations, user authentication, and a secure admin panel for website management. The project is set up to be easily extended with additional features, such as a product catalog.
 
 ## Project Structure
 
@@ -14,6 +14,9 @@ A modern, responsive landing page for a fictional printing company called "ORIGI
 ├── components.js     # Reusable web components
 ├── auth.js           # Firebase authentication logic
 ├── firebase-config.js # Firebase configuration
+├── admin.html        # Admin panel HTML
+├── admin.css         # Admin panel CSS
+├── admin.js          # Admin panel JavaScript
 ├── logo.png          # Company logo
 ├── background.jpg    # Background image
 ├── why-choose-us.jpg # Image for the "Why Choose Us" section
@@ -56,7 +59,7 @@ A modern, responsive landing page for a fictional printing company called "ORIGI
 *   **SVG Icons:** The social media links now use SVG icons for a cleaner and more modern look.
 *   **Organized Layout:** The footer content is organized into sections for easy readability.
 
-## Authentication
+### Authentication
 
 *   **Firebase Authentication:** User authentication is handled by Firebase Authentication, providing a secure and reliable solution.
 *   **Advanced Login & Sign-Up:** The authentication popup provides a seamless experience for both new and returning users.
@@ -72,6 +75,20 @@ A modern, responsive landing page for a fictional printing company called "ORIGI
     *   "Remember Me" checkbox
     *   Forgot password functionality (sends a reset email)
 
+### Admin Panel
+
+*   **Secure Admin Access:** A dedicated admin panel is available at `admin.html`.
+*   **Admin Identification:** A specific email address (`kylebriannt@gmail.com`) is designated as the administrator.
+*   **Automatic Redirection:** Upon successful login, the user with the admin email is automatically redirected to the `admin.html` page. Regular users remain on the main site.
+*   **Admin Dashboard:** The `admin.html` page provides a central dashboard for website management, featuring a distinct dark-themed design, a navigation menu, and a secure logout button.
+*   **User Management:**
+    *   **User List:** The "User Management" section displays a table of all registered users.
+    *   **User Information:** The table includes the User ID, Email, Authentication Provider, and the account creation date.
+    *   **Secure Data Fetching:** User data is fetched securely using the Firebase CLI `auth:export` command. The resulting JSON file is read by the application and then immediately deleted to prevent exposing user data on the client-side.
+
 ## Current Plan
 
-*   **All tasks complete!**
+1.  **Enhance User Management:**
+    *   Implement a feature to view more detailed information for each user.
+    *   Add functionality to disable or delete user accounts directly from the admin panel.
+2.  **Implement Content Management:** Build out the "Content Management" section to allow the admin to update website text, images, and other content dynamically.

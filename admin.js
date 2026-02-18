@@ -71,8 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
               "localId": "SaYKQnyeJwPoEmhXHHICIrI1qni1",
               "email": "testuser@gmail.com",
               "emailVerified": false,
-              "passwordHash": "6IlX96NqbdN0WQQIv6WLzYQZ02weObSvSKWScXRXaaNY8KR91hf+BnDmMxCLWcSEaVtqWbE+6puPBYz1rgMyow==",
-              "salt": "DznZBavI2Krymw==",
+              "passwordHash": "n8gAnb2ENSEL821AnX6vE8V3+3tBNE1i3iFpCEHwb3soJ2Co0j3b6r2t2TMYk8gA5C41L+g1gBgg8CbyiDqB+A==",
+              "salt": "aNewSecureSalt==",
               "lastSignedInAt": "1771005474909",
               "createdAt": "1771005474909",
               "providerUserInfo": []

@@ -1,0 +1,15 @@
+# Environment and config files
+config.js
+.env
+.env.local
+
+# Firebase
+.firebase/
+.firebaserc
+
+# Dependencies
+node_modules/
+
+# IDE
+.idx/
+.replit

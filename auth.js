@@ -5,6 +5,8 @@ class LoginPopup extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
+        this.MAX_LOGIN_ATTEMPTS = 3;
+        this.LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
         this.shadowRoot.innerHTML = `
             <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
             <style>
@@ -66,6 +68,7 @@ class LoginPopup extends HTMLElement {
                 .sub-popup-content h3 { margin-top: 0; font-size: 1.5rem; color: var(--accent-color); text-align: center;}
                 .sub-popup-content p { margin-bottom: 1rem; }
                 .close-sub-popup { position: absolute; top: 10px; right: 15px; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+                #countdown-timer { display: none; font-size: 1.2rem; font-weight: bold; text-align: center; color: white; margin-top: 1rem; padding: 0.5rem 0; }
             </style>
 
             <div class="popup-overlay">
@@ -184,6 +187,7 @@ class LoginPopup extends HTMLElement {
                     <button class="close-sub-popup">&times;</button>
                     <h3 id="error-title" style="color: var(--error-color);">Error</h3>
                     <p id="error-message"></p>
+                    <div id="countdown-timer" style="display: none;"></div>
                 </div>
             </div>
         `;
@@ -303,6 +307,22 @@ class LoginPopup extends HTMLElement {
         const errorPopup = this.shadowRoot.querySelector('#error-popup');
         errorPopup.querySelector('#error-title').textContent = title;
         errorPopup.querySelector('#error-message').textContent = message;
+        const countdownElement = this.shadowRoot.querySelector('#countdown-timer');
+        
+        const isLockedOut = this._isLockedOut();
+        
+        // Show countdown if user is currently locked out
+        if (isLockedOut) {
+            countdownElement.style.display = 'block';
+            countdownElement.textContent = 'Countdown loading...';
+            this._startCountdown(countdownElement);
+        } else {
+            countdownElement.style.display = 'none';
+            if (this.countdownInterval) {
+                clearInterval(this.countdownInterval);
+            }
+        }
+        
         errorPopup.style.display = 'flex';
     }
 
@@ -346,9 +366,18 @@ class LoginPopup extends HTMLElement {
         e.preventDefault();
         const email = this.shadowRoot.querySelector('#email').value;
         const password = this.shadowRoot.querySelector('#password').value;
+
+        // Check if account is locked out
+        if (this._isLockedOut()) {
+            this._showErrorPopup('Too Many Requests', 'You have exceeded the maximum login attempts. Please try again in 1 minutes.');
+            return;
+        }
+
         signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
                 const user = userCredential.user;
+                // Reset login attempts on successful login
+                this._resetLoginAttempts();
                 if (user.email === 'kylebriannt@gmail.com') {
                     window.location.href = 'admin.html';
                 } else {
@@ -356,7 +385,17 @@ class LoginPopup extends HTMLElement {
                 }
             })
             .catch(err => {
-                this._showErrorPopup('Login Failed', this._getFriendlyErrorMessage(err));
+                // Increment login attempts on failed login
+                this._incrementLoginAttempts();
+                const attemptsRemaining = this.MAX_LOGIN_ATTEMPTS - this._getLoginAttempts();
+                
+                if (this._isLockedOut()) {
+                    this._showErrorPopup('Too Many Requests', 'You have exceeded the maximum login attempts. Please try again in 15 minutes.');
+                } else if (attemptsRemaining > 0) {
+                    this._showErrorPopup('Login Failed', this._getFriendlyErrorMessage(err) + ` (${attemptsRemaining} attempts remaining)`);
+                } else {
+                    this._showErrorPopup('Too Many Requests', 'You have exceeded the maximum login attempts. Please try again in 15 minutes.');
+                }
             });
     }
 
@@ -427,6 +466,68 @@ class LoginPopup extends HTMLElement {
 
     closePopup() {
         this.remove();
+    }
+
+    _getLoginAttempts() {
+        const data = JSON.parse(localStorage.getItem('loginAttempts') || '{"count": 0, "timestamp": 0}');
+        const now = Date.now();
+        
+        // Reset if lockout time has passed
+        if (now - data.timestamp > this.LOCKOUT_TIME) {
+            return 0;
+        }
+        return data.count;
+    }
+
+    _incrementLoginAttempts() {
+        const data = JSON.parse(localStorage.getItem('loginAttempts') || '{"count": 0, "timestamp": 0}');
+        const now = Date.now();
+        
+        // Reset if lockout time has passed
+        if (now - data.timestamp > this.LOCKOUT_TIME) {
+            data.count = 1;
+            data.timestamp = now;
+        } else {
+            data.count += 1;
+            data.timestamp = now;
+        }
+        
+        localStorage.setItem('loginAttempts', JSON.stringify(data));
+    }
+
+    _resetLoginAttempts() {
+        localStorage.setItem('loginAttempts', JSON.stringify({"count": 0, "timestamp": 0}));
+    }
+
+    _isLockedOut() {
+        return this._getLoginAttempts() >= this.MAX_LOGIN_ATTEMPTS;
+    }
+
+    _startCountdown(countdownElement) {
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+
+        const updateCountdown = () => {
+            const data = JSON.parse(localStorage.getItem('loginAttempts') || '{"count": 0, "timestamp": 0}');
+            const now = Date.now();
+            const timeRemaining = this.LOCKOUT_TIME - (now - data.timestamp);
+
+            if (timeRemaining <= 0) {
+                clearInterval(this.countdownInterval);
+                countdownElement.style.display = 'none';
+                return;
+            }
+
+            const seconds = Math.ceil(timeRemaining / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            const text = `Try again in ${minutes}:${secs.toString().padStart(2, '0')}`;
+            countdownElement.textContent = text;
+        };
+
+        updateCountdown();
+        this.countdownInterval = setInterval(updateCountdown, 1000);
     }
 }
 

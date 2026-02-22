@@ -1,5 +1,5 @@
 import { GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { auth } from './firebase-config.js';
+import { auth } from '../config/firebase-config.js';
 
 class LoginPopup extends HTMLElement {
     constructor() {
@@ -13,7 +13,7 @@ class LoginPopup extends HTMLElement {
 
     async _loadTemplate() {
         try {
-            const response = await fetch('./login-popup-template.html');
+            const response = await fetch('../pages/login-popup-template.html');
             if (!response.ok) {
                 throw new Error(`Failed to load template: ${response.status}`);
             }

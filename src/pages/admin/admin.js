@@ -1,4 +1,4 @@
-import { auth } from './firebase-config.js';
+import { auth } from '../../config/firebase-config.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Redirect if not logged in or not an admin
     auth.onAuthStateChanged(user => {
         if (!user || user.email !== 'kylebriannt@gmail.com') {
-            window.location.href = 'index.html';
+            window.location.href = '../../index.html';
         }
     });
 

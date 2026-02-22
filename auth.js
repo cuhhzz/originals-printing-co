@@ -6,7 +6,9 @@ class LoginPopup extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         this.MAX_LOGIN_ATTEMPTS = 3;
-        this.LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
+        this.LOCKOUT_TIME = 2 * 60 * 1000; // 2 minutes in milliseconds
+        this.OTP_EXPIRATION = 10 * 60 * 1000; // 10 minutes for OTP validity
+        this.lockedOutEmail = null; 
         this.shadowRoot.innerHTML = `
             <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
             <style>
@@ -69,6 +71,17 @@ class LoginPopup extends HTMLElement {
                 .sub-popup-content p { margin-bottom: 1rem; }
                 .close-sub-popup { position: absolute; top: 10px; right: 15px; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
                 #countdown-timer { display: none; font-size: 1.2rem; font-weight: bold; text-align: center; color: white; margin-top: 1rem; padding: 0.5rem 0; }
+                .otp-request-btn { width: 100%; padding: 0.75rem; background-color: var(--accent-color); color: black; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background-color 0.3s; margin-top: 1rem; }
+                .otp-request-btn:hover { background-color: white; }
+                .otp-description { font-size: 0.9rem; color: #bbb; text-align: center; margin-bottom: 1.5rem; }
+                .otp-input { letter-spacing: 0.5rem; text-align: center; font-size: 1.3rem; font-weight: bold; }
+                .otp-timer { font-size: 0.85rem; color: #888; text-align: center; margin-top: 0.5rem; }
+                .button-group { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+                .button-group button { flex: 1; padding: 0.75rem; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
+                .verify-btn { background-color: var(--success-color); color: white; }
+                .verify-btn:hover { background-color: #20c047; }
+                .resend-btn { background-color: #555; color: white; }
+                .resend-btn:hover { background-color: #666; }
             </style>
 
             <div class="popup-overlay">
@@ -188,6 +201,22 @@ class LoginPopup extends HTMLElement {
                     <h3 id="error-title" style="color: var(--error-color);">Error</h3>
                     <p id="error-message"></p>
                     <div id="countdown-timer" style="display: none;"></div>
+                    <button id="request-otp-btn" class="otp-request-btn" style="display: none;">Request OTP to Unlock</button>
+                </div>
+            </div>
+            <div id="otp-popup" class="sub-popup-overlay">
+                <div class="sub-popup-content">
+                    <button class="close-sub-popup">&times;</button>
+                    <h3 id="otp-title" style="color: var(--accent-color);">Verify with OTP</h3>
+                    <p class="otp-description">A one-time password has been sent to your email. Enter it below to unlock your account.</p>
+                    <div class="form-group">
+                        <input type="text" id="otp-input" class="otp-input" placeholder="000000" maxlength="6" required>
+                        <div class="otp-timer" id="otp-timer"></div>
+                    </div>
+                    <div class="button-group">
+                        <button class="verify-btn" id="verify-otp-btn">Verify OTP</button>
+                        <button class="resend-btn" id="resend-otp-btn">Resend</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -239,6 +268,21 @@ class LoginPopup extends HTMLElement {
         this.shadowRoot.querySelector('#google-login').addEventListener('click', this._handleGoogleLogin.bind(this));
         this.shadowRoot.querySelector('#facebook-login').addEventListener('click', this._handleFacebookLogin.bind(this));
         this.shadowRoot.querySelector('#forgot-password').addEventListener('click', this._handleForgotPassword.bind(this));
+
+        // OTP listeners
+        this.shadowRoot.querySelector('#request-otp-btn').addEventListener('click', this._handleRequestOTP.bind(this));
+        this.shadowRoot.querySelector('#verify-otp-btn').addEventListener('click', this._handleVerifyOTP.bind(this));
+        this.shadowRoot.querySelector('#resend-otp-btn').addEventListener('click', this._handleResendOTP.bind(this));
+        this.shadowRoot.querySelector('#otp-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this._handleVerifyOTP.call(this);
+            }
+        });
+
+        // Allow only digits in OTP input
+        this.shadowRoot.querySelector('#otp-input').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
     }
 
     _switchView(viewId) {
@@ -308,6 +352,7 @@ class LoginPopup extends HTMLElement {
         errorPopup.querySelector('#error-title').textContent = title;
         errorPopup.querySelector('#error-message').textContent = message;
         const countdownElement = this.shadowRoot.querySelector('#countdown-timer');
+        const otpBtn = this.shadowRoot.querySelector('#request-otp-btn');
         
         const isLockedOut = this._isLockedOut();
         
@@ -316,8 +361,14 @@ class LoginPopup extends HTMLElement {
             countdownElement.style.display = 'block';
             countdownElement.textContent = 'Countdown loading...';
             this._startCountdown(countdownElement);
+            
+            // Show OTP request button if email is available
+            if (this.lockedOutEmail) {
+                otpBtn.style.display = 'block';
+            }
         } else {
             countdownElement.style.display = 'none';
+            otpBtn.style.display = 'none';
             if (this.countdownInterval) {
                 clearInterval(this.countdownInterval);
             }
@@ -367,9 +418,13 @@ class LoginPopup extends HTMLElement {
         const email = this.shadowRoot.querySelector('#email').value;
         const password = this.shadowRoot.querySelector('#password').value;
 
+        console.log('LOGIN_ATTEMPT:', {email, isLockedOut: this._isLockedOut(), attempts: this._getLoginAttempts()});
+
         // Check if account is locked out
         if (this._isLockedOut()) {
-            this._showErrorPopup('Too Many Requests', 'You have exceeded the maximum login attempts. Please try again in 1 minutes.');
+            console.log('ACCOUNT_LOCKED_OUT');
+            this.lockedOutEmail = email;
+            this._showErrorPopup('Too Many Requests', 'You have exceeded the maximum login attempts. Please try again in 2 minutes.');
             return;
         }
 
@@ -378,6 +433,7 @@ class LoginPopup extends HTMLElement {
                 const user = userCredential.user;
                 // Reset login attempts on successful login
                 this._resetLoginAttempts();
+                console.log('LOGIN_SUCCESS, ATTEMPTS_RESET');
                 if (user.email === 'kylebriannt@gmail.com') {
                     window.location.href = 'admin.html';
                 } else {
@@ -389,12 +445,16 @@ class LoginPopup extends HTMLElement {
                 this._incrementLoginAttempts();
                 const attemptsRemaining = this.MAX_LOGIN_ATTEMPTS - this._getLoginAttempts();
                 
+                console.log('LOGIN_FAILED:', {error: err.code, attempts: this._getLoginAttempts(), attemptsRemaining});
+                
                 if (this._isLockedOut()) {
-                    this._showErrorPopup('Too Many Requests', 'You have exceeded the maximum login attempts. Please try again in 15 minutes.');
+                    console.log('NOW_LOCKED_OUT');
+                    this.lockedOutEmail = email;
+                    this._showErrorPopup('Too Many Requests', 'You have exceeded the maximum login attempts. Please try again in 2 minutes.');
                 } else if (attemptsRemaining > 0) {
                     this._showErrorPopup('Login Failed', this._getFriendlyErrorMessage(err) + ` (${attemptsRemaining} attempts remaining)`);
                 } else {
-                    this._showErrorPopup('Too Many Requests', 'You have exceeded the maximum login attempts. Please try again in 15 minutes.');
+                    this._showErrorPopup('Too Many Requests', 'You have exceeded the maximum login attempts. Please try again in 2 minutes.');
                 }
             });
     }
@@ -528,6 +588,136 @@ class LoginPopup extends HTMLElement {
 
         updateCountdown();
         this.countdownInterval = setInterval(updateCountdown, 1000);
+    }
+
+    _generateOTP() {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    _sendOTP(email) {
+        const otp = this._generateOTP();
+        const otpData = {
+            otp: otp,
+            email: email,
+            timestamp: Date.now(),
+            attempts: 0
+        };
+        localStorage.setItem('otpData', JSON.stringify(otpData));
+        
+        // For demo purposes, log OTP to console
+        // In production, this would be sent via Firebase Cloud Function or backend
+        console.log(`OTP for ${email}: ${otp}`);
+        
+        // Display OTP in a more visible way for testing (can be removed in production)
+        this._showSuccessPopup('OTP Sent', `An OTP has been sent to ${email}. For testing, your OTP is: ${otp}`);
+        
+        return otp;
+    }
+
+    _handleRequestOTP() {
+        const email = this.lockedOutEmail;
+        if (!email) {
+            this._showErrorPopup('Error', 'Unable to determine email address.');
+            return;
+        }
+
+        this._sendOTP(email);
+        
+        // Close error popup and show OTP popup
+        this.shadowRoot.querySelector('#error-popup').style.display = 'none';
+        const otpPopup = this.shadowRoot.querySelector('#otp-popup');
+        otpPopup.style.display = 'flex';
+        
+        // Focus on OTP input
+        setTimeout(() => {
+            this.shadowRoot.querySelector('#otp-input').focus();
+        }, 100);
+
+        // Start OTP timer
+        this._startOTPTimer();
+    }
+
+    _handleVerifyOTP() {
+        const otpInput = this.shadowRoot.querySelector('#otp-input').value;
+        
+        if (otpInput.length !== 6) {
+            this._showErrorPopup('Invalid OTP', 'Please enter a valid 6-digit OTP.');
+            return;
+        }
+
+        if (this._verifyOTP(otpInput)) {
+            // Reset the lockout when OTP is verified
+            this._resetLoginAttempts();
+            this.shadowRoot.querySelector('#otp-popup').style.display = 'none';
+            this._showSuccessPopup('Success', 'Account unlocked! You can now try logging in again.');
+        } else {
+            const otpData = JSON.parse(localStorage.getItem('otpData') || '{}');
+            otpData.attempts = (otpData.attempts || 0) + 1;
+            localStorage.setItem('otpData', JSON.stringify(otpData));
+
+            if (otpData.attempts >= 3) {
+                this.shadowRoot.querySelector('#otp-popup').style.display = 'none';
+                this._showErrorPopup('Too Many Attempts', 'You have exceeded the maximum OTP verification attempts. Please request a new OTP.');
+            } else {
+                this._showErrorPopup('Invalid OTP', `Incorrect OTP. ${3 - otpData.attempts} attempts remaining.`);
+                this.shadowRoot.querySelector('#otp-input').value = '';
+            }
+        }
+    }
+
+    _handleResendOTP() {
+        const otpData = JSON.parse(localStorage.getItem('otpData') || '{}');
+        if (!otpData.email) {
+            this._showErrorPopup('Error', 'Unable to resend OTP.');
+            return;
+        }
+
+        localStorage.removeItem('otpData');
+        this._sendOTP(otpData.email);
+        this.shadowRoot.querySelector('#otp-input').value = '';
+        this._startOTPTimer();
+    }
+
+    _verifyOTP(inputOTP) {
+        const otpData = JSON.parse(localStorage.getItem('otpData') || '{}');
+        
+        // Check if OTP has expired
+        if (Date.now() - otpData.timestamp > this.OTP_EXPIRATION) {
+            this._showErrorPopup('OTP Expired', 'Your OTP has expired. Please request a new one.');
+            return false;
+        }
+
+        return otpData.otp === inputOTP;
+    }
+
+    _startOTPTimer() {
+        if (this.otpTimerInterval) {
+            clearInterval(this.otpTimerInterval);
+        }
+
+        const updateOTPTimer = () => {
+            const otpData = JSON.parse(localStorage.getItem('otpData') || '{}');
+            const now = Date.now();
+            const timeRemaining = this.OTP_EXPIRATION - (now - otpData.timestamp);
+
+            const otpTimerElement = this.shadowRoot.querySelector('#otp-timer');
+            if (!otpTimerElement) return;
+
+            if (timeRemaining <= 0) {
+                clearInterval(this.otpTimerInterval);
+                otpTimerElement.textContent = 'OTP Expired - Request a new one';
+                this.shadowRoot.querySelector('#verify-otp-btn').disabled = true;
+                return;
+            }
+
+            const seconds = Math.ceil(timeRemaining / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            otpTimerElement.textContent = `Expires in ${minutes}:${secs.toString().padStart(2, '0')}`;
+        };
+
+        updateOTPTimer();
+        this.otpTimerInterval = setInterval(updateOTPTimer, 1000);
     }
 }
 

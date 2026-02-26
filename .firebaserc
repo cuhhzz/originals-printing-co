@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "sample-d876b"
+  },
   "targets": {},
   "etags": {}
 }

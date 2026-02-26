@@ -7,7 +7,7 @@ class LoginPopup extends HTMLElement {
         this.attachShadow({ mode: 'open' });
         this.MAX_LOGIN_ATTEMPTS = 3;
         this.LOCKOUT_TIME = 2 * 60 * 1000; // 2 minutes in milliseconds
-        this.OTP_EXPIRATION = 10 * 60 * 1000; // 10 minutes for OTP validity
+        this.OTP_EXPIRATION = 5 * 60 * 1000; // 5 minutes for OTP validity
         this.lockedOutEmail = null;
     }
 

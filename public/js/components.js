@@ -1,4 +1,4 @@
-import { auth } from '../config/firebase-config.js';
+import { auth } from '/config/firebase-config.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
 
 class SiteHeader extends HTMLElement {
@@ -114,7 +114,7 @@ class SiteHeader extends HTMLElement {
       </style>
       <header>
         <div class="logo-container">
-          <img src="images/logo.png" alt="ORIGINALS Printing Co. Logo" class="logo">
+          <img src="../images/logo.png" alt="ORIGINALS Printing Co. Logo" class="logo">
           <div class="logo-text">
             <span class="originals">ORIGINALS</span>
             <span class="printing-co">Printing Co.</span>

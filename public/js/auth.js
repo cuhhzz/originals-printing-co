@@ -13,7 +13,7 @@ class LoginPopup extends HTMLElement {
 
     async _loadTemplate() {
         try {
-            const response = await fetch('../pages/login-popup-template.html');
+            const response = await fetch('/pages/login-popup-template.html');
             if (!response.ok) {
                 throw new Error(`Failed to load template: ${response.status}`);
             }

@@ -9,7 +9,7 @@
         --strong-color: #28a745;
     }
     .popup-overlay {
-        position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px);
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2000; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
     }
     .popup {
         background: #1e1e1e; width: 420px; padding: 2.5rem; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); position: relative; color: white;
@@ -70,12 +70,21 @@
     .verify-btn:hover { background-color: #20c047; }
     .resend-btn { background-color: #555; color: white; }
     .resend-btn:hover { background-color: #666; }
+    #signup-view { display: none; }
+    #terms-popup, #privacy-popup, #success-popup, #error-popup, #otp-popup { display: none; }
+    #countdown-timer { display: none; }
+    #request-otp-btn { display: none; }
+    #error-popup #countdown-timer { display: none; }
+    #error-popup #request-otp-btn { display: none; }
+    #success-title { color: var(--success-color); }
+    #error-title { color: var(--error-color); }
+    #otp-title { color: var(--accent-color); }
 </style>
 
 <div class="popup-overlay">
     <div class="popup">
         <div class="popup-logo-container">
-            <img src="logo.png" alt="ORIGINALS Printing Co. Logo" class="popup-logo">
+            <img src="../images/logo.png" alt="ORIGINALS Printing Co. Logo" class="popup-logo">
         </div>
         <button id="close-popup">&times;</button>
 
@@ -91,7 +100,7 @@
                 <div class="form-group">
                     <div class="input-wrapper">
                         <input type="password" id="password" placeholder="Password" required>
-                        <button type="button" class="password-toggle-btn" data-for="password"><i class='bx bx-hide'></i></button>
+                        <button type="button" class="password-toggle-btn" data-for="password" title="Toggle password visibility"><i class='bx bx-hide'></i></button>
                     </div>
                 </div>
                 <div class="options">
@@ -115,7 +124,7 @@
         </div>
 
         <!-- Signup View -->
-        <div id="signup-view" style="display:none;">
+        <div id="signup-view">
             <h2>Sign Up</h2>
             <form id="signup-form">
                 <div class="form-group">
@@ -127,7 +136,7 @@
                 <div class="form-group">
                     <div class="input-wrapper">
                         <input type="password" id="signup-password" placeholder="Create Password" required>
-                        <button type="button" class="password-toggle-btn" data-for="signup-password"><i class='bx bx-hide'></i></button>
+                        <button type="button" class="password-toggle-btn" data-for="signup-password" title="Toggle password visibility"><i class='bx bx-hide'></i></button>
                     </div>
                     <div class="password-validation-container">
                          <div id="password-strength-text"></div>
@@ -144,7 +153,7 @@
                 <div class="form-group">
                     <div class="input-wrapper">
                         <input type="password" id="signup-password-confirm" placeholder="Confirm Password" required>
-                         <button type="button" class="password-toggle-btn" data-for="signup-password-confirm"><i class='bx bx-hide'></i></button>
+                         <button type="button" class="password-toggle-btn" data-for="signup-password-confirm" title="Toggle password visibility"><i class='bx bx-hide'></i></button>
                     </div>
                 </div>
                 <div class="form-group terms-group">
@@ -179,23 +188,23 @@
 <div id="success-popup" class="sub-popup-overlay">
     <div class="sub-popup-content">
         <button class="close-sub-popup">&times;</button>
-        <h3 id="success-title" style="color: var(--success-color);">Success</h3>
+        <h3 id="success-title">Success</h3>
         <p id="success-message"></p>
     </div>
 </div>
 <div id="error-popup" class="sub-popup-overlay">
     <div class="sub-popup-content">
         <button class="close-sub-popup">&times;</button>
-        <h3 id="error-title" style="color: var(--error-color);">Error</h3>
+        <h3 id="error-title">Error</h3>
         <p id="error-message"></p>
-        <div id="countdown-timer" style="display: none;"></div>
-        <button id="request-otp-btn" class="otp-request-btn" style="display: none;">Request OTP to Unlock</button>
+        <div id="countdown-timer"></div>
+        <button id="request-otp-btn" class="otp-request-btn">Request OTP to Unlock</button>
     </div>
 </div>
 <div id="otp-popup" class="sub-popup-overlay">
     <div class="sub-popup-content">
         <button class="close-sub-popup">&times;</button>
-        <h3 id="otp-title" style="color: var(--accent-color);">Verify with OTP</h3>
+        <h3 id="otp-title">Verify with OTP</h3>
         <p class="otp-description">A one-time password has been sent to your email. Enter it below to unlock your account.</p>
         <div class="form-group">
             <input type="text" id="otp-input" class="otp-input" placeholder="000000" maxlength="6" required>

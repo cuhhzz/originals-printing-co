@@ -114,7 +114,7 @@ class SiteHeader extends HTMLElement {
       </style>
       <header>
         <div class="logo-container">
-          <img src="logo.png" alt="ORIGINALS Printing Co. Logo" class="logo">
+          <img src="images/logo.png" alt="ORIGINALS Printing Co. Logo" class="logo">
           <div class="logo-text">
             <span class="originals">ORIGINALS</span>
             <span class="printing-co">Printing Co.</span>

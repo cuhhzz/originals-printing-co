@@ -60,6 +60,16 @@ class LoginPopup extends HTMLElement {
         passwordInput.addEventListener('input', this._validatePassword.bind(this));
         passwordConfirmInput.addEventListener('input', this._validatePassword.bind(this));
 
+        // Prevent copy/paste in password fields
+        passwordInput.addEventListener('paste', e => e.preventDefault());
+        passwordInput.addEventListener('copy', e => e.preventDefault());
+        passwordInput.addEventListener('cut', e => e.preventDefault());
+        passwordInput.addEventListener('contextmenu', e => e.preventDefault());
+        passwordConfirmInput.addEventListener('paste', e => e.preventDefault());
+        passwordConfirmInput.addEventListener('copy', e => e.preventDefault());
+        passwordConfirmInput.addEventListener('cut', e => e.preventDefault());
+        passwordConfirmInput.addEventListener('contextmenu', e => e.preventDefault());
+
         // Sub-popup listeners
         this.shadowRoot.querySelector('#show-terms').addEventListener('click', (e) => { e.preventDefault(); this.shadowRoot.querySelector('#terms-popup').style.display = 'flex'; });
         this.shadowRoot.querySelector('#show-privacy').addEventListener('click', (e) => { e.preventDefault(); this.shadowRoot.querySelector('#privacy-popup').style.display = 'flex'; });

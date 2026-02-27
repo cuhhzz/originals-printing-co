@@ -104,6 +104,18 @@ class LoginPopup extends HTMLElement {
         this.shadowRoot.querySelector('#otp-input').addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/[^0-9]/g, '');
         });
+        
+        const otpMethodRadios = this.shadowRoot.querySelectorAll('input[name="otp-method"]');
+        const phoneInputContainer = this.shadowRoot.querySelector('#phone-input-container');
+        otpMethodRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'phone' && radio.checked) {
+                    phoneInputContainer.style.display = 'block';
+                } else {
+                    phoneInputContainer.style.display = 'none';
+                }
+            });
+        });
     }
 
     _switchView(viewId) {
@@ -415,11 +427,12 @@ class LoginPopup extends HTMLElement {
         return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    _sendOTP(email) {
+    _sendOTPViaEmail(email) {
         const otp = this._generateOTP();
         const otpData = {
             otp: otp,
-            email: email,
+            method: 'email',
+            recipient: email,
             timestamp: Date.now(),
             attempts: 0
         };
@@ -435,15 +448,45 @@ class LoginPopup extends HTMLElement {
         return otp;
     }
 
+    _sendOTPViaPhone(phoneNumber) {
+        const otp = this._generateOTP();
+        const otpData = {
+            otp: otp,
+            method: 'phone',
+            recipient: phoneNumber,
+            timestamp: Date.now(),
+            attempts: 0
+        };
+        localStorage.setItem('otpData', JSON.stringify(otpData));
+
+        // For demo purposes, log OTP to console
+        // In production, this would be sent via an SMS gateway
+        console.log(`OTP for ${phoneNumber}: ${otp}`);
+
+        this._showSuccessPopup('OTP Sent', `An OTP has been sent to ${phoneNumber}. For testing, your OTP is: ${otp}`);
+
+        return otp;
+    }
+
     _handleRequestOTP() {
-        const email = this.lockedOutEmail;
-        if (!email) {
-            this._showErrorPopup('Error', 'Unable to determine email address.');
-            return;
+        const otpMethod = this.shadowRoot.querySelector('input[name="otp-method"]:checked').value;
+
+        if (otpMethod === 'email') {
+            const email = this.lockedOutEmail;
+            if (!email) {
+                this._showErrorPopup('Error', 'Unable to determine email address.');
+                return;
+            }
+            this._sendOTPViaEmail(email);
+        } else if (otpMethod === 'phone') {
+            const phoneNumber = this.shadowRoot.querySelector('#phone-number-input').value;
+            if (!phoneNumber || !/^[0-9]{10,15}$/.test(phoneNumber)) {
+                this._showErrorPopup('Error', 'Please enter a valid phone number (10-15 digits).');
+                return;
+            }
+            this._sendOTPViaPhone(phoneNumber);
         }
 
-        this._sendOTP(email);
-        
         // Close error popup and show OTP popup
         this.shadowRoot.querySelector('#error-popup').style.display = 'none';
         const otpPopup = this.shadowRoot.querySelector('#otp-popup');
@@ -488,13 +531,19 @@ class LoginPopup extends HTMLElement {
 
     _handleResendOTP() {
         const otpData = JSON.parse(localStorage.getItem('otpData') || '{}');
-        if (!otpData.email) {
+        if (!otpData.recipient || !otpData.method) {
             this._showErrorPopup('Error', 'Unable to resend OTP.');
             return;
         }
 
         localStorage.removeItem('otpData');
-        this._sendOTP(otpData.email);
+        
+        if (otpData.method === 'email') {
+            this._sendOTPViaEmail(otpData.recipient);
+        } else if (otpData.method === 'phone') {
+            this._sendOTPViaPhone(otpData.recipient);
+        }
+        
         this.shadowRoot.querySelector('#otp-input').value = '';
         this._startOTPTimer();
     }

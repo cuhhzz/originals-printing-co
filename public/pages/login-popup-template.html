@@ -237,7 +237,17 @@
     <div class="sub-popup-content">
         <button class="close-sub-popup">&times;</button>
         <h3 id="otp-title">Verify with OTP</h3>
-        <p class="otp-description">A one-time password has been sent to your email. Enter it below to unlock your account.</p>
+        <p class="otp-description">Select how you want to receive the one-time password.</p>
+        <div class="form-group">
+            <label><input type="radio" name="otp-method" value="email" checked> Email</label>
+            <label><input type="radio" name="otp-method" value="phone"> Phone Number</label>
+        </div>
+        <div id="phone-input-container" style="display: none;">
+            <div class="form-group">
+                <input type="text" id="phone-number-input" placeholder="Enter your phone number">
+            </div>
+        </div>
+        <p class="otp-description">A one-time password will be sent. Enter it below to unlock your account.</p>
         <div class="form-group">
             <input type="text" id="otp-input" class="otp-input" placeholder="000000" maxlength="6" required>
             <div class="otp-timer" id="otp-timer"></div>

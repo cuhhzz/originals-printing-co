@@ -1,4 +1,4 @@
-import { auth } from '../../config/firebase-config.js';
+import { auth } from './config/firebase-config.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,13 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Redirect if not logged in or not an admin
     auth.onAuthStateChanged(user => {
         if (!user || user.email !== 'kylebriannt@gmail.com') {
-            window.location.href = '../../index.html';
+            window.location.href = '../index.html';
         }
     });
 
     logoutButton.addEventListener('click', () => {
         signOut(auth).then(() => {
-            window.location.href = 'index.html';
+            window.location.href = '../index.html';
         }).catch((error) => {
             console.error('Logout Error:', error);
         });
@@ -59,22 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const users = {"users": [
             {
               "localId": "A3JBraH2BvPbGrUFaBlZqPegrTP2",
-              "email": "admin@example.com",
-              "emailVerified": false,
+              "email": "admin@gmail.com",
+              "emailVerified": true,
               "passwordHash": "KlCVMmEA6nnr1Hz+Po8ykdmA/7PsgsdIcORd0zjFkwDfYTIYAaWNLB+r2VSzQSyMF4Lfl2kNRv+YwbUeLtpA6Q==",
               "salt": "Q5YWL+OF+dRHag==",
               "lastSignedInAt": "1771190668102",
               "createdAt": "1771190668102",
-              "providerUserInfo": []
-            },
-            {
-              "localId": "SaYKQnyeJwPoEmhXHHICIrI1qni1",
-              "email": "testuser@gmail.com",
-              "emailVerified": false,
-              "passwordHash": "n8gAnb2ENSEL821AnX6vE8V3+3tBNE1i3iFpCEHwb3soJ2Co0j3b6r2t2TMYk8gA5C41L+g1gBgg8CbyiDqB+A==",
-              "salt": "aNewSecureSalt==",
-              "lastSignedInAt": "1771005474909",
-              "createdAt": "1771005474909",
               "providerUserInfo": []
             },
             {

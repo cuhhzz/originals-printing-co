@@ -268,7 +268,7 @@ class LoginPopup extends HTMLElement {
                 this._resetLoginAttempts();
                 console.log('LOGIN_SUCCESS, ATTEMPTS_RESET');
                 if (user.email === 'kylebriannt@gmail.com') {
-                    window.location.href = 'admin.html';
+                    window.location.href = 'pages/admin.html';
                 } else {
                     this.closePopup();
                 }
@@ -315,7 +315,7 @@ class LoginPopup extends HTMLElement {
             .then((result) => {
                 const user = result.user;
                 if (user.email === 'kylebriannt@gmail.com') {
-                    window.location.href = 'admin.html';
+                    window.location.href = 'pages/admin.html';
                 } else {
                     this.closePopup();
                 }
@@ -329,7 +329,7 @@ class LoginPopup extends HTMLElement {
             .then((result) => {
                 const user = result.user;
                 if (user && user.email === 'kylebriannt@gmail.com') {
-                    window.location.href = 'admin.html';
+                    window.location.href = 'pages/admin.html';
                 } else {
                     this.closePopup();
                 }

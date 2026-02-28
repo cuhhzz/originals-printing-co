@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - ORIGINALS Printing Co.</title>
     <link rel="stylesheet" href="./admin.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="icon" href="../images/logo.png">
 </head>
 <body>
+    <site-header></site-header>
     <div id="admin-panel">
         <header>
             <h1>Admin Panel</h1>
@@ -48,6 +51,12 @@
             </section>
         </main>
     </div>
+    <site-footer></site-footer>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+
     <script type="module" src="./admin.js"></script>
 </body>
 </html>

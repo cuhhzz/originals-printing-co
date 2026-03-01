@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Setup Utility</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .instructions {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .instructions strong {
+            color: #333;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Admin Setup</h1>
+        <p class="subtitle">Create admin Firestore documents</p>
+
+        <div class="instructions">
+            <strong>Steps:</strong>
+            <ol style="margin-left: 20px; margin-top: 10px;">
+                <li>Find the Firebase UID in <strong>Firebase Console → Authentication → Users</strong></li>
+                <li>Paste the UID below</li>
+                <li>Click "Create Admin"</li>
+            </ol>
+        </div>
+
+        <form id="adminForm">
+            <div class="form-group">
+                <label for="uid">Firebase UID *</label>
+                <input 
+                    type="text" 
+                    id="uid" 
+                    placeholder="e.g., SaYKQnyeJwPoEmhXHHIcIrlqni1" 
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    placeholder="xxxxxx@gmail.com" 
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="displayName">Display Name (Optional)</label>
+                <input 
+                    type="text" 
+                    id="displayName"     
+                    placeholder="Preferred Name"
+                >
+            </div>
+
+            <button type="submit">Create Admin</button>
+        </form>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHy4gnb-gf4Hf6O7bLno1ReNo_REduGoU",
+            authDomain: "originals-website.firebaseapp.com",
+            projectId: "originals-website",
+            storageBucket: "originals-website.appspot.com",
+            messagingSenderId: "368704000921",
+            appId: "1:368704000921:web:5cfca95d6ad861bd9fb908",
+            measurementId: "G-J8RYV0HCP9"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const form = document.getElementById('adminForm');
+        const messageEl = document.getElementById('message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const uid = document.getElementById('uid').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const displayName = document.getElementById('displayName').value.trim() || email.split('@')[0];
+
+            // Clear previous messages
+            messageEl.className = 'message';
+            messageEl.textContent = '';
+
+            if (!uid) {
+                showMessage('Please enter a Firebase UID', 'error');
+                return;
+            }
+
+            if (!email) {
+                showMessage('Please enter an email', 'error');
+                return;
+            }
+
+            try {
+                form.style.opacity = '0.6';
+                form.style.pointerEvents = 'none';
+
+                // Create admin document in Firestore with all fields
+                await db.collection('users').doc(uid).set({
+                    email: email,
+                    displayName: displayName,
+                    isAdmin: true,
+                    createdAt: new Date(),
+                    emailVerified: true,
+                    username: displayName,
+                    otpCode: null,
+                    otpExpires: null,
+                    otpVerified: false,
+                    phone: '',
+                    phoneVerified: false
+                });
+
+                showMessage(`✓ Admin created successfully!\n\nUID: ${uid}\nEmail: ${email}\nDisplay Name: ${displayName}`, 'success');
+                form.reset();
+            } catch (error) {
+                console.error('Error creating admin:', error);
+                showMessage(`Error: ${error.message}`, 'error');
+            } finally {
+                form.style.opacity = '1';
+                form.style.pointerEvents = 'auto';
+            }
+        });
+
+        function showMessage(text, type) {
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import { GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { auth } from '/config/firebase-config.js';
+import { auth, db } from '/config/firebase-config.js';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firestore.js";
 
 class LoginPopup extends HTMLElement {
     constructor() {
@@ -246,6 +247,19 @@ class LoginPopup extends HTMLElement {
             });
     }
 
+    async _checkIsAdmin(user) {
+        try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+                return userDoc.data().isAdmin === true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error checking admin status:', error);
+            return false;
+        }
+    }
+
     _handleEmailLogin(e) {
         e.preventDefault();
         const email = this.shadowRoot.querySelector('#email').value;
@@ -262,12 +276,13 @@ class LoginPopup extends HTMLElement {
         }
 
         signInWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
+            .then(async (userCredential) => {
                 const user = userCredential.user;
                 // Reset login attempts on successful login
                 this._resetLoginAttempts();
                 console.log('LOGIN_SUCCESS, ATTEMPTS_RESET');
-                if (user.email === 'kylebriannt@gmail.com') {
+                const isAdmin = await this._checkIsAdmin(user);
+                if (isAdmin) {
                     window.location.href = 'pages/admin.html';
                 } else {
                     this.closePopup();
@@ -312,10 +327,11 @@ class LoginPopup extends HTMLElement {
     _handleGoogleLogin() {
         const provider = new GoogleAuthProvider();
         signInWithPopup(auth, provider)
-            .then((result) => {
+            .then(async (result) => {
                 const user = result.user;
-                if (user.email === 'kylebriannt@gmail.com') {
-                    window.location.href = 'pages/admin.html';
+                const isAdmin = await this._checkIsAdmin(user);
+                if (isAdmin) {
+                    window.location.href = '../admin.html';
                 } else {
                     this.closePopup();
                 }
@@ -326,10 +342,15 @@ class LoginPopup extends HTMLElement {
     _handleFacebookLogin() {
         const provider = new FacebookAuthProvider();
         signInWithPopup(auth, provider)
-            .then((result) => {
+            .then(async (result) => {
                 const user = result.user;
-                if (user && user.email === 'kylebriannt@gmail.com') {
-                    window.location.href = 'pages/admin.html';
+                if (user) {
+                    const isAdmin = await this._checkIsAdmin(user);
+                    if (isAdmin) {
+                        window.location.href = '../admin.html';
+                    } else {
+                        this.closePopup();
+                    }
                 } else {
                     this.closePopup();
                 }

@@ -1,5 +1,6 @@
-import { auth } from './config/firebase-config.js';
+import { auth, db } from './config/firebase-config.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js';
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.9.0/firestore.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const logoutButton = document.getElementById('logout-button');
@@ -11,8 +12,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const contentManagementSection = document.getElementById('content-management-section');
 
     // Redirect if not logged in or not an admin
-    auth.onAuthStateChanged(user => {
-        if (!user || user.email !== 'kylebriannt@gmail.com') {
+    auth.onAuthStateChanged(async user => {
+        if (!user) {
+            window.location.href = '../index.html';
+            return;
+        }
+        
+        try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (!userDoc.exists() || userDoc.data().isAdmin !== true) {
+                window.location.href = '../index.html';
+            }
+        } catch (error) {
+            console.error('Error checking admin status:', error);
             window.location.href = '../index.html';
         }
     });
@@ -59,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const users = {"users": [
             {
               "localId": "A3JBraH2BvPbGrUFaBlZqPegrTP2",
-              "email": "admin@gmail.com",
+              "email": "marcaidajessmar@gmail.com",
               "emailVerified": true,
               "passwordHash": "KlCVMmEA6nnr1Hz+Po8ykdmA/7PsgsdIcORd0zjFkwDfYTIYAaWNLB+r2VSzQSyMF4Lfl2kNRv+YwbUeLtpA6Q==",
               "salt": "Q5YWL+OF+dRHag==",
